@@ -58,6 +58,8 @@ class EBSDViewer:
         self.current_channel = tk.IntVar(value=DEFAULT_CHANNEL)
         self.scale_mode = tk.StringVar(value=SCALE_MODES[0])
         self.last_click_info = {}
+        self._vmin_var = tk.StringVar()
+        self._vmax_var = tk.StringVar()
 
         self._build_ui()
 
@@ -97,6 +99,22 @@ class EBSDViewer:
         self.scale_combo.bind("<<ComboboxSelected>>", self._on_scale_change)
 
         ttk.Button(toolbar, text="Save Pattern Info", command=self._save_info).pack(side=tk.RIGHT, padx=4)
+
+        # ---- Bounds bar ----
+        bounds_bar = ttk.Frame(self.root, padding=(4, 0, 4, 2))
+        bounds_bar.pack(side=tk.TOP, fill=tk.X)
+        ttk.Label(bounds_bar, text="Map bounds:").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Label(bounds_bar, text="Min:").pack(side=tk.LEFT)
+        vmin_entry = ttk.Entry(bounds_bar, textvariable=self._vmin_var, width=10)
+        vmin_entry.pack(side=tk.LEFT, padx=(2, 8))
+        vmin_entry.bind("<Return>", lambda _e: self._update_map())
+        vmin_entry.bind("<FocusOut>", lambda _e: self._update_map())
+        ttk.Label(bounds_bar, text="Max:").pack(side=tk.LEFT)
+        vmax_entry = ttk.Entry(bounds_bar, textvariable=self._vmax_var, width=10)
+        vmax_entry.pack(side=tk.LEFT, padx=(2, 8))
+        vmax_entry.bind("<Return>", lambda _e: self._update_map())
+        vmax_entry.bind("<FocusOut>", lambda _e: self._update_map())
+        ttk.Button(bounds_bar, text="Reset", command=self._reset_bounds).pack(side=tk.LEFT)
 
         # ---- Status bar ----
         self.status_var = tk.StringVar(value="Load an ANG file to begin.")
@@ -205,6 +223,16 @@ class EBSDViewer:
         cmap = CHANNEL_CMAPS[ch]
         use_log = self.scale_mode.get() == "Log"
 
+        # Read manual bounds (empty = auto)
+        try:
+            manual_vmin = float(self._vmin_var.get()) if self._vmin_var.get().strip() else None
+        except ValueError:
+            manual_vmin = None
+        try:
+            manual_vmax = float(self._vmax_var.get()) if self._vmax_var.get().strip() else None
+        except ValueError:
+            manual_vmax = None
+
         if use_log:
             positive = channel_data[np.isfinite(channel_data) & (channel_data > 0)]
             if positive.size == 0:
@@ -212,24 +240,38 @@ class EBSDViewer:
                     "Log scale is unavailable for this channel because it has no positive values."
                 )
                 use_log = False
+                vmin = manual_vmin
+                vmax = manual_vmax
             else:
-                vmin = float(positive.min())
-                vmax = float(positive.max())
+                auto_vmin = float(positive.min())
+                auto_vmax = float(positive.max())
+                vmin = manual_vmin if (manual_vmin is not None and manual_vmin > 0) else auto_vmin
+                vmax = manual_vmax if manual_vmax is not None else auto_vmax
                 if vmin == vmax:
                     vmax = vmin * 1.001
                 channel_data = np.ma.masked_less_equal(channel_data, 0)
         else:
-            vmin = None
-            vmax = None
+            vmin = manual_vmin
+            vmax = manual_vmax
 
         self.map_ax.cla()
-        im = self.map_ax.imshow(
-            channel_data,
-            cmap=cmap,
-            origin="upper",
-            interpolation="nearest",
-            norm=LogNorm(vmin=vmin, vmax=vmax) if use_log else None,
-        )
+        if use_log:
+            im = self.map_ax.imshow(
+                channel_data,
+                cmap=cmap,
+                origin="upper",
+                interpolation="nearest",
+                norm=LogNorm(vmin=vmin, vmax=vmax),
+            )
+        else:
+            im = self.map_ax.imshow(
+                channel_data,
+                cmap=cmap,
+                origin="upper",
+                interpolation="nearest",
+                vmin=vmin,
+                vmax=vmax,
+            )
         self.map_ax.set_title(
             f"{CHANNEL_NAMES[ch]} (log)" if use_log else CHANNEL_NAMES[ch],
             fontsize=10,
@@ -250,6 +292,11 @@ class EBSDViewer:
         self._update_map()
 
     def _on_scale_change(self, _event=None):
+        self._update_map()
+
+    def _reset_bounds(self):
+        self._vmin_var.set("")
+        self._vmax_var.set("")
         self._update_map()
 
     # ------------------------------------------------------------------

@@ -1,0 +1,8 @@
+{
+  "mode": "batch_ndp",
+  "osc_path": "E:/MPC-Share/Sam/Code/4D-EBSD/Data/20240508_27238_flipX_Rescan_with_PC_of_Marc.ang",
+  "up2_path": "E:/MPC-Share/Sam/Code/4D-EBSD/Data/processed.up2",
+  "phase_path": "E:\\MPC-Share\\Sam\\Code\\4D-EBSD\\Data\\GaN_hex_8kV.oem",
+  "output_path": "E:\\MPC-Share\\Sam\\Code\\4D-EBSD\\_ndp_result.npy",
+  "repo_path": "E:\\MPC-Share\\Sam\\Code\\4D-EBSD"
+}

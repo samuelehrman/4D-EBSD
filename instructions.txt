@@ -1,0 +1,8 @@
+utilizing ANG and UP2, please make me a UI that allows me to inspect individual kikuchi patters.
+
+The UI should start by opening up an interactive image of the data in the ANG file. Display the Confidence Index channel
+Allow for other channels to be selected as the interactive window (ie. euler angle value or image quality)
+
+Let the user click around on the CI map.
+Based on where the user clicks have a different window display the kikuchi pattern at that point using UP2
+Also display and save the pattern number and row/column information.

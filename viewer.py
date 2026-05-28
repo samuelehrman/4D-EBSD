@@ -14,6 +14,7 @@ import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
 
 from ANG import Ang
@@ -42,6 +43,7 @@ CHANNEL_CMAPS = [
     "plasma",              # Fit
 ]
 DEFAULT_CHANNEL = 6  # CI
+SCALE_MODES = ["Linear", "Log"]
 
 
 class EBSDViewer:
@@ -54,6 +56,7 @@ class EBSDViewer:
         self.up2: UP2 | None = None
         self.data: np.ndarray | None = None   # shape (nrows, ncols, 10)
         self.current_channel = tk.IntVar(value=DEFAULT_CHANNEL)
+        self.scale_mode = tk.StringVar(value=SCALE_MODES[0])
         self.last_click_info = {}
 
         self._build_ui()
@@ -80,6 +83,18 @@ class EBSDViewer:
         self.channel_combo.current(DEFAULT_CHANNEL)
         self.channel_combo.pack(side=tk.LEFT, padx=4)
         self.channel_combo.bind("<<ComboboxSelected>>", self._on_channel_change)
+
+        ttk.Label(toolbar, text="  Scale:").pack(side=tk.LEFT)
+        self.scale_combo = ttk.Combobox(
+            toolbar,
+            values=SCALE_MODES,
+            width=10,
+            state="readonly",
+            textvariable=self.scale_mode,
+        )
+        self.scale_combo.current(0)
+        self.scale_combo.pack(side=tk.LEFT, padx=4)
+        self.scale_combo.bind("<<ComboboxSelected>>", self._on_scale_change)
 
         ttk.Button(toolbar, text="Save Pattern Info", command=self._save_info).pack(side=tk.RIGHT, padx=4)
 
@@ -187,6 +202,24 @@ class EBSDViewer:
         ch = self.channel_combo.current()
         channel_data = self.data[:, :, ch]
         cmap = CHANNEL_CMAPS[ch]
+        use_log = self.scale_mode.get() == "Log"
+
+        if use_log:
+            positive = channel_data[np.isfinite(channel_data) & (channel_data > 0)]
+            if positive.size == 0:
+                self.status_var.set(
+                    "Log scale is unavailable for this channel because it has no positive values."
+                )
+                use_log = False
+            else:
+                vmin = float(positive.min())
+                vmax = float(positive.max())
+                if vmin == vmax:
+                    vmax = vmin * 1.001
+                channel_data = np.ma.masked_less_equal(channel_data, 0)
+        else:
+            vmin = None
+            vmax = None
 
         self.map_ax.cla()
         im = self.map_ax.imshow(
@@ -194,8 +227,12 @@ class EBSDViewer:
             cmap=cmap,
             origin="upper",
             interpolation="nearest",
+            norm=LogNorm(vmin=vmin, vmax=vmax) if use_log else None,
         )
-        self.map_ax.set_title(CHANNEL_NAMES[ch], fontsize=10)
+        self.map_ax.set_title(
+            f"{CHANNEL_NAMES[ch]} (log)" if use_log else CHANNEL_NAMES[ch],
+            fontsize=10,
+        )
         self.map_ax.set_xlabel("Column")
         self.map_ax.set_ylabel("Row")
 
@@ -211,6 +248,9 @@ class EBSDViewer:
         self.map_canvas.draw()
 
     def _on_channel_change(self, _event=None):
+        self._update_map()
+
+    def _on_scale_change(self, _event=None):
         self._update_map()
 
     # ------------------------------------------------------------------

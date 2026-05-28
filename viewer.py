@@ -111,8 +111,9 @@ class EBSDViewer:
         left_frame = ttk.LabelFrame(content, text="EBSD Map", padding=2)
         content.add(left_frame, weight=1)
 
-        self.map_fig = Figure(figsize=(5, 5), tight_layout=True)
+        self.map_fig = Figure(figsize=(5, 5), constrained_layout=True)
         self.map_ax = self.map_fig.add_subplot(111)
+        self._colorbar = None
         self.map_ax.set_axis_off()
         self.map_canvas = FigureCanvasTkAgg(self.map_fig, master=left_frame)
         self.map_canvas.draw()
@@ -236,13 +237,11 @@ class EBSDViewer:
         self.map_ax.set_xlabel("Column")
         self.map_ax.set_ylabel("Row")
 
-        # Colorbar: replace if already present
-        if hasattr(self, "_colorbar") and self._colorbar is not None:
-            try:
-                self._colorbar.remove()
-            except Exception:
-                pass
-        self._colorbar = self.map_fig.colorbar(im, ax=self.map_ax, fraction=0.046, pad=0.04)
+        # Create colorbar once; update its mappable on subsequent redraws
+        if self._colorbar is None:
+            self._colorbar = self.map_fig.colorbar(im, ax=self.map_ax, fraction=0.046, pad=0.04)
+        else:
+            self._colorbar.update_normal(im)
 
         self._marker = None
         self.map_canvas.draw()

@@ -1,2 +1,15 @@
-Nice job -- please do something similar, but make a normalized dot product map (of experimental vs. simulated) of the region after selecting a ang and up2 file.
-Make sure to have a progress bar
+Great Job!!! Now please add a third mode
+
+I want the third mode to be able to plot the line profiles of a bunch of patterns
+
+So, start by having the user select an ang file. Have the unser be able toinspect it like in viewer.py
+Have the user draw a line on the interface
+
+Follow a similar process to the band analysis in mode 1
+
+Pick a pattern from the middle of the drawn line
+Have the user draw a rectangle on this pattern (and have the ismualred pattern next to it)
+
+Select 10 evenly spaced patterns from the line drawn on the ANG and perform the same summation and band intensity profile as the other modes
+Plot the intensity profiles all togther
+

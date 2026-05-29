@@ -50,8 +50,10 @@ from sim_compare import (
 # ---------------------------------------------------------------------------
 
 def _pct_diff(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Pixel-wise absolute percent difference between two [0, 1] images."""
-    return np.abs(a.astype(np.float32) - b.astype(np.float32)) * 100.0
+    """Pixel-wise percent difference (exp - sim) / ((exp + sim) / 2) * 100."""
+    a = a.astype(np.float32)
+    b = b.astype(np.float32)
+    return (a - b) / ((a + b) / 2.0) * 100.0
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +220,7 @@ class Main4DEBSDViewer(EBSDViewer):
                         f"Original: {sim_orig_shape[1]}x{sim_orig_shape[0]}  ->  {sim.shape[1]}x{sim.shape[0]}",
                         ha="center", va="top", transform=ax_sim.transAxes, fontsize=7, color="gray")
 
-        im = ax_diff.imshow(diff, cmap="gray", origin="upper", vmin=0, vmax=100)
+        im = ax_diff.imshow(diff, cmap="RdBu_r", origin="upper", vmin=-200, vmax=200)
         ax_diff.set_title(f"% Difference  (mean = {mean_diff:.1f} %)", fontsize=9)
         ax_diff.set_axis_off()
         fig.colorbar(im, ax=ax_diff, fraction=0.046, pad=0.04, label="%")
